@@ -1,0 +1,8 @@
+---
+- name: Remount NFS
+  command: mount -a
+
+- name: Systemd Reload Configs
+  ansible.builtin.systemd:
+    daemon_reload: true
+...

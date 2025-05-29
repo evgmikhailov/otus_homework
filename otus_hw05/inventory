@@ -1,0 +1,4 @@
+[nfs_server]
+ubt02 ansible_host=192.168.1.122
+[nfs_clients]
+ubt01 ansible_host=192.168.1.151

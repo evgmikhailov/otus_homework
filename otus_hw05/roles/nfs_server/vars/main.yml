@@ -1,0 +1,9 @@
+---
+nfs_srv_path: "/nfs/share"
+nfs_srv_path_upload: "/nfs/share/upload"
+nfs_srv_exports: "/nfs/share 192.168.1.151/32(rw,sync,no_subtree_check,root_squash)"
+nfs_srv_clients: "192.168.1.151/32"
+nfs_srv_options: "rw,sync,no_subtree_check,root_squash"
+nfs_exports_cmd: "exportfs -ra"
+nfs_exports_cmd_2: "exportfs -s"
+...

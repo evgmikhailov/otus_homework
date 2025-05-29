@@ -1,0 +1,22 @@
+---
+- hosts: all
+  become: true
+  gather_facts: yes
+  roles:
+    - base
+- hosts: nfs_server
+  become: true
+  gather_facts: true
+  roles:
+    - nfs_server
+- hosts: nfs_clients
+  become: true
+  gather_facts: true
+  roles:
+    - nfs_clients
+- hosts: all
+  become: true
+  gather_facts: true
+  roles:
+    - nfs_verify
+...

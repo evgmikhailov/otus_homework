@@ -1,0 +1,84 @@
+---
+- name: Check files on server
+  command: "ls {{ nfs_srv_path_upload }}"
+  register: server_files
+  changed_when: false
+  when: inventory_hostname in groups['nfs_server']
+
+- name: Display files on server
+  debug:
+    var: server_files.stdout_lines
+  when: inventory_hostname in groups['nfs_server']
+
+- name: Check NFS exports
+  command: "exportfs -s"
+  register: nfs_exports
+  changed_when: false
+  when: inventory_hostname in groups['nfs_server']
+
+- name: Display NFS exports
+  debug:
+    var: nfs_exports.stdout
+  when: inventory_hostname in groups['nfs_server']
+
+- name: Check RPC mounts
+  command: "showmount -a {{ nfs_server_ip }}"
+  register: rpc_mounts
+  changed_when: false
+  when: inventory_hostname in groups['nfs_server']
+
+- name: Display RPC mounts
+  debug:
+    var: rpc_mounts.stdout
+  when: inventory_hostname in groups['nfs_server']
+
+- name: Check RPC on client
+  command: "showmount -a {{ nfs_server_ip }}"
+  register: client_rpc
+  changed_when: false
+  when: inventory_hostname in groups['nfs_clients']
+
+- name: Display RPC info on client
+  debug:
+    var: client_rpc.stdout
+  when: inventory_hostname in groups['nfs_clients']
+
+- name: Check mount status
+  command: grep "{{ nfs_client_mount }}" /proc/mounts
+  register: mount_status
+  changed_when: false
+  when: inventory_hostname in groups['nfs_clients']
+
+- name: Display mount status
+  debug:
+    var: mount_status.stdout
+  when: inventory_hostname in groups['nfs_clients']
+
+- name: Check existing files in NFS share
+  command: "ls {{ nfs_client_mount_upload }}"
+  register: existing_files
+  changed_when: false
+  when: inventory_hostname in groups['nfs_clients']
+
+- name: Display existing files
+  debug:
+    var: existing_files.stdout_lines
+  when: inventory_hostname in groups['nfs_clients']
+
+- name: Create test file
+  file:
+    path: "{{ nfs_client_mount_upload }}/final_check"
+    state: touch
+  when: inventory_hostname in groups['nfs_clients']
+
+- name: Verify test file
+  stat:
+    path: "{{ nfs_client_mount_upload }}/final_check"
+  register: test_file
+  when: inventory_hostname in groups['nfs_clients']
+
+- name: Display test file status
+  debug:
+    var: test_file.stat.exists
+  when: inventory_hostname in groups['nfs_clients']
+...

@@ -1,0 +1,61 @@
+---
+- name: Install NFS server packages
+  apt:
+    name: nfs-kernel-server
+    state: present
+    update_cache: yes
+
+- name: Create NFS share directory
+  file:
+    path: "{{ nfs_srv_path_upload }}"
+    state: directory
+    mode: '0777'
+    owner: nobody
+    group: nogroup
+
+- name: Configure NFS exports
+  copy:
+    dest: /etc/exports
+    content: "{{ nfs_srv_path }} {{ nfs_srv_clients }}({{ nfs_srv_options }})"
+    owner: root
+    group: root
+    mode: '0644'
+  notify: Restart NFS
+
+- name: Reload NFS exports
+  command: "{{ nfs_exports_cmd }}"
+
+- name: Verify NFS exports
+  command: "{{ nfs_exports_cmd_2 }}"
+  register: nfs_exports_1
+  changed_when: false
+
+- name: Show NFS exports
+  debug:
+    var: nfs_exports_1.stdout_lines
+
+- name: Create test file check_file
+  file:
+    path: "{{ nfs_srv_path_upload }}/check_file"
+    state: touch
+    owner: nobody
+    group: nogroup
+
+- name: Ensure NFS services are enabled and running
+  service:
+    name: "{{ item }}"
+    state: started
+    enabled: yes
+  loop:
+    - rpcbind
+    - nfs-server
+
+- name: Reboot NFS server
+  reboot:
+    msg: "Reboot initiated after NFS configuration"
+    connect_timeout: 5
+    reboot_timeout: 600
+    pre_reboot_delay: 0
+    post_reboot_delay: 30
+
+...

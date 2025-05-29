@@ -1,0 +1,49 @@
+---
+- name: Install NFS client packages
+  apt:
+    name: nfs-common
+    state: present
+    update_cache: yes
+
+- name: Create mount point directory
+  file:
+    path: "{{ nfs_client_mount }}"
+    state: directory
+    mode: '0755'
+
+- name: Configure NFS mount in fstab
+  lineinfile:
+    path: /etc/fstab
+    line: "{{ nfs_srv }}:{{ nfs_srv_path }} {{ nfs_client_mount }} nfs vers=3,noauto,x-systemd.automount 0 0"
+    state: present
+    insertafter: EOF
+
+- name: Reload systemd and mount NFS share
+  block:
+    - name: Reload systemd
+      command: systemctl daemon-reload
+
+    - name: Restart remote-fs target
+      command: systemctl restart remote-fs.target
+
+- name: Verify NFS mount
+  command: grep "{{ nfs_client_mount }}" /proc/mounts
+  register: mount_check
+  changed_when: false
+  failed_when: mount_check.rc != 0
+
+- name: Reboot client
+  reboot:
+    msg: "Reboot after NFS client configuration"
+    connect_timeout: 5
+    reboot_timeout: 600
+    pre_reboot_delay: 0
+    post_reboot_delay: 30
+
+- name: Create test file client_file
+  file:
+    path: "{{ nfs_client_mount_upload }}/client_file"
+    state: touch
+    owner: nobody
+    group: nogroup
+...
