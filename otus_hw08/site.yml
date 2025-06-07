@@ -1,0 +1,17 @@
+---
+- hosts: watchlog
+  become: true
+  gather_facts: true
+  roles:
+    - watchlog
+- hosts: spawn
+  become: true
+  gather_facts: true
+  roles:
+    - spawn
+- hosts: nginxs
+  become: true
+  gather_facts: true
+  roles:
+    - nginxs
+...

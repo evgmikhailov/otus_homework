@@ -1,0 +1,87 @@
+---
+- name: Create configuration directory
+  file:
+    path: /etc/default
+    state: directory
+
+- name: Create watchlog configuration
+  copy:
+    src: watchlog
+    dest: /etc/default/watchlog
+    owner: root
+    group: root
+    mode: 0644
+
+- name: Ensure log directory exists
+  file:
+    path: /var/log
+    state: directory
+
+- name: Create sample log file
+  copy:
+    content: "Very important log line\nALERT: This is important\nAnother log line\n"
+    dest: /var/log/watchlog.log
+    owner: root
+    group: root
+    mode: 0644
+
+- name: Deploy watchlog script
+  template:
+    src: watchlog.sh.j2
+    dest: /opt/watchlog.sh
+    owner: root
+    group: root
+    mode: 0755
+
+- name: Create systemd service unit
+  copy:
+    content: |
+      [Unit]
+      Description=My watchlog service
+
+      [Service]
+      Type=oneshot
+      EnvironmentFile=/etc/default/watchlog
+      ExecStart=/opt/watchlog.sh $WORD $LOG
+    dest: /etc/systemd/system/watchlog.service
+
+- name: Create systemd timer unit
+  copy:
+    content: |
+      [Unit]
+      Description=Run watchlog script every 30 second
+
+      [Timer]
+      OnUnitActiveSec=30
+      Unit=watchlog.service
+
+      [Install]
+      WantedBy=multi-user.target
+    dest: /etc/systemd/system/watchlog.timer
+
+- name: Enable and start watchlog timer
+  systemd:
+    name: watchlog.timer
+    enabled: yes
+    state: started
+
+- name: Pause for 40 seconds
+  ansible.builtin.pause:
+    seconds: 40
+
+- name: Get journalctl logs
+  ansible.builtin.command: journalctl -S -2m --grep="Master"
+  register: journal_output
+  ignore_errors: yes
+
+- name: Display the filtered logs
+  debug:
+    var: journal_output.stdout_lines
+  when: journal_output.stdout_lines | length > 0
+
+- name: Show message if no matches found
+  debug:
+    msg: "Нет данных по запросу 'Master' найденных за последние 2 минуты"
+  when: journal_output.stdout_lines | length == 0
+
+...

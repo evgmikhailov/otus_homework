@@ -1,0 +1,6 @@
+[nginxs]
+ubt01 ansible_host=192.168.1.151
+[spawn]
+ubt01 ansible_host=192.168.1.151
+[watchlog]
+ubt01 ansible_host=192.168.1.151

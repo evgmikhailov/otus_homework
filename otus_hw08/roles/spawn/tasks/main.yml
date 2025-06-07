@@ -1,0 +1,58 @@
+---
+- name: Install packages
+  apt:
+    name:
+      - spawn-fcgi
+      - php
+      - php-cgi
+      - php-cli
+      - apache2
+      - libapache2-mod-fcgid
+    state: present
+
+- name: Create configuration directory
+  file:
+    path: /etc/spawn-fcgi
+    state: directory
+
+- name: Deploy spawn-fcgi configuration
+  copy:
+    src: fcgi.conf
+    dest: /etc/spawn-fcgi/fcgi.conf
+    owner: root
+    group: root
+    mode: 0644
+
+- name: Create systemd service unit
+  copy:
+    content: |
+      [Unit]
+      Description=Spawn-fcgi startup service by Otus
+      After=network.target
+
+      [Service]
+      Type=simple
+      PIDFile=/var/run/spawn-fcgi.pid
+      EnvironmentFile=/etc/spawn-fcgi/fcgi.conf
+      ExecStart=/usr/bin/spawn-fcgi -n $OPTIONS
+      KillMode=process
+
+      [Install]
+      WantedBy=multi-user.target
+    dest: /etc/systemd/system/spawn-fcgi.service
+
+- name: Enable and start spawn-fcgi service
+  systemd:
+    name: spawn-fcgi
+    enabled: yes
+    state: started
+
+- name: Get spawn-fcgi service status
+  ansible.builtin.command: systemctl status spawn-fcgi
+  register: service_status
+  ignore_errors: yes
+
+- name: Display spawn-fcgi status
+  ansible.builtin.debug:
+    var: service_status.stdout_lines
+...

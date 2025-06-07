@@ -1,0 +1,95 @@
+---
+- name: Install nginx
+  apt:
+    name: nginx
+    state: present
+
+- name: Stop default nginx service
+  systemd:
+    name: nginx
+    state: stopped
+    enabled: no
+
+- name: Create systemd template unit
+  copy:
+    content: |
+      [Unit]
+      Description=A high performance web server and a reverse proxy server
+      Documentation=man:nginx(8)
+      After=network.target nss-lookup.target
+
+      [Service]
+      Type=forking
+      PIDFile=/run/nginx-%I.pid
+      ExecStartPre=/usr/sbin/nginx -t -c /etc/nginx/nginx-%I.conf -q -g 'daemon on; master_process on;'
+      ExecStart=/usr/sbin/nginx -c /etc/nginx/nginx-%I.conf -g 'daemon on; master_process on;'
+      ExecReload=/usr/sbin/nginx -c /etc/nginx/nginx-%I.conf -g 'daemon on; master_process on;' -s reload
+      ExecStop=-/sbin/start-stop-daemon --quiet --stop --retry QUIT/5 --pidfile /run/nginx-%I.pid
+      TimeoutStopSec=5
+      KillMode=mixed
+
+      [Install]
+      WantedBy=multi-user.target
+    dest: /etc/systemd/system/nginx@.service
+
+- name: Deploy first nginx config
+  template:
+    src: nginx-first.conf.j2
+    dest: /etc/nginx/nginx-first.conf
+    owner: root
+    group: root
+    mode: 0644
+
+- name: Deploy second nginx config
+  template:
+    src: nginx-second.conf.j2
+    dest: /etc/nginx/nginx-second.conf
+    owner: root
+    group: root
+    mode: 0644
+
+- name: Enable and start nginx instances
+  systemd:
+    name: "nginx@{{ item }}"
+    enabled: yes
+    state: started
+  loop:
+    - first
+    - second
+
+- name: Check status of nginx@first service
+  ansible.builtin.command: systemctl status nginx@first
+  register: nginxfirst_status
+  ignore_errors: yes
+
+- name: Display nginx@first service status
+  ansible.builtin.debug:
+    var: nginxfirst_status.stdout_lines
+
+- name: Check status of nginx@second service
+  ansible.builtin.command: systemctl status nginx@second
+  register: nginxsecond_status
+  ignore_errors: yes
+
+- name: Display nginx@second service status
+  ansible.builtin.debug:
+    var: nginxsecond_status.stdout_lines
+
+- name: Check listening ports for nginx
+  ansible.builtin.shell: ss -tnulp | grep nginx
+  register: nginx_ports
+  ignore_errors: yes
+
+- name: Display nginx listening ports
+  ansible.builtin.debug:
+    var: nginx_ports.stdout_lines
+
+- name: Check running nginx processes
+  ansible.builtin.shell: ps afx | grep nginx
+  register: nginx_processes
+  ignore_errors: yes
+
+- name: Display nginx processes
+  ansible.builtin.debug:
+    var: nginx_processes.stdout_lines
+...
