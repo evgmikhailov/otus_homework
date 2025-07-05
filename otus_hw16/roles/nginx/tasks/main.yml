@@ -1,0 +1,54 @@
+---
+- name: Install Nginx # Установка Nginx
+  ansible.builtin.apt:
+    name: nginx
+    state: present
+    update_cache: yes
+  notify:
+    - Enable Nginx
+    - Restart Nginx
+
+- name: Create Nginx config directory #Создание папки Nginx
+  ansible.builtin.file:
+    path: /etc/nginx/conf.d
+    state: directory
+    mode: '0755'
+
+- name: Configure Nginx #Задание базовой конфигурации
+  ansible.builtin.template:
+    src: nginx.conf.j2
+    dest: /etc/nginx/nginx.conf
+    mode: '0644'
+  notify: Restart Nginx
+
+- name: Configure default site #Настройка сайта
+  ansible.builtin.template:
+    src: default-site.conf.j2
+    dest: /etc/nginx/conf.d/default.conf
+    mode: '0644'
+  notify: Restart Nginx
+
+- name: Get Nginx service status #Запрос статуса nginx
+  ansible.builtin.systemd:
+    name: nginx
+  register: nginx_status
+  changed_when: false
+
+- name: Show Nginx status # вывод Статуса nginx
+  ansible.builtin.debug:
+    msg: |
+      Nginx status:
+      - Active: {{ nginx_status.status.ActiveState }}
+      - Sub: {{ nginx_status.status.SubState }}
+      - Loaded: {{ nginx_status.status.LoadState }}
+
+- name: Show listening ports # Запрос ss -ntlp
+  ansible.builtin.command: ss -ntlp
+  register: ss_res
+  changed_when: false
+
+- name: Display listening ports # Вывод ss -ntlp
+  ansible.builtin.debug:
+    var: ss_res.stdout_lines
+
+...
